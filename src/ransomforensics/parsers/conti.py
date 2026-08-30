@@ -38,7 +38,7 @@ HEADER_ENCRYPT_BYTES = 1_048_576  # EncryptHeader hardcodes 1 MiB
 class ContiParser(FamilyParser):
     FAMILY = "conti"
 
-    def parse(self, data: bytes, path) -> Analysis | None:
+    def parse(self, data: bytes, path, file_size: int | None = None) -> Analysis | None:
         if len(data) < FOOTER_LEN:
             return None
 
@@ -54,8 +54,8 @@ class ContiParser(FamilyParser):
         # declared original size must match the observed file length.
         if mode is EncryptMode.PARTLY and not (0 < percent <= 100):
             return None
-        expected = original_size + FOOTER_LEN
-        if expected != len(data):
+        observed = file_size if file_size is not None else len(data)
+        if original_size + FOOTER_LEN != observed:
             return None
 
         key_blob = data[-FOOTER_LEN:-TRAILER_LEN]

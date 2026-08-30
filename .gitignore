@@ -8,3 +8,6 @@ dist/
 fixtures/*.bin
 fixtures/carved/
 launch-kit.md
+demo_incident/
+incident_report.md
+recovered/

@@ -17,5 +17,10 @@ class FamilyParser(abc.ABC):
     FAMILY: str = ""
 
     @abc.abstractmethod
-    def parse(self, data: bytes, path) -> Analysis | None:
-        """Return an Analysis if `data` matches this family, else None."""
+    def parse(self, data: bytes, path, file_size: int | None = None) -> Analysis | None:
+        """Return an Analysis if `data` matches this family, else None.
+
+        `data` may be only the tail of the file (the footer always lives at
+        the end); in that case `file_size` carries the real on-disk length
+        for validation, and `len(data)` must be ignored for sizing.
+        """

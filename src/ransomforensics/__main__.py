@@ -73,6 +73,49 @@ def cmd_gen(args) -> int:
     return 0
 
 
+def cmd_scan(args) -> int:
+    from .report import write_report
+    from .scanner import scan_directory
+
+    result = scan_directory(args.directory)
+    s = result.stats
+    print(f"scanned {s.files_seen:,} files under {result.root}")
+    print(f"  matched   : {s.files_matched:,}")
+    print(f"  unmatched : {s.files_unmatched:,}")
+    print(f"  skipped   : {s.files_skipped:,}")
+    for fam, count in sorted(s.by_family.items()):
+        rec = s.recoverable_by_family.get(fam, 0)
+        print(f"  {fam:<10}: {count:,} files, {_human(rec)} recoverable")
+    print(
+        f"TOTAL keyless-recoverable: {_human(s.total_recoverable_bytes)} "
+        f"of {_human(s.total_original_bytes)} ({s.recoverable_ratio:.1%})"
+    )
+    if args.report:
+        out = write_report(result, args.report)
+        print(f"report written to {out}")
+    if args.carve:
+        from .recovery import carve
+
+        out_dir = Path(args.carve)
+        for a in result.recoverable_files:
+            carve(a, Path(a.path).read_bytes(), out_dir / Path(a.path).stem[:40])
+        print(f"carved {len(result.recoverable_files)} files into {out_dir}")
+    return 0
+
+
+def cmd_tui(args) -> int:
+    try:
+        from .tui.app import RansomForensicsApp
+    except ImportError:
+        print(
+            "TUI needs the textual extra:  pip install '.[tui]'",
+            file=sys.stderr,
+        )
+        return 2
+    RansomForensicsApp().run()
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="ransomforensics")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -93,6 +136,15 @@ def main(argv=None) -> int:
     p_gen.add_argument("--percent", type=int, default=25)
     p_gen.add_argument("--out", required=True)
     p_gen.set_defaults(func=cmd_gen)
+
+    p_sc = sub.add_parser("scan", help="triage a directory tree, headless")
+    p_sc.add_argument("directory")
+    p_sc.add_argument("--report", default=None, help="write a markdown report here")
+    p_sc.add_argument("--carve", default=None, help="carve recoverable regions into this directory")
+    p_sc.set_defaults(func=cmd_scan)
+
+    p_tui = sub.add_parser("tui", help="launch the interactive triage console")
+    p_tui.set_defaults(func=cmd_tui)
 
     args = ap.parse_args(argv)
     return args.func(args)
