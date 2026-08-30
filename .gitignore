@@ -7,3 +7,4 @@ dist/
 # fixtures are regenerable via `ransomforensics gen` — keep the repo binary-free
 fixtures/*.bin
 fixtures/carved/
+launch-kit.md
